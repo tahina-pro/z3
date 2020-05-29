@@ -5,8 +5,8 @@ if [[ -z "$BUILD_THREADS" ]] ; then
     BUILD_THREADS=1
 fi
 docker build -t z3 --build-arg BUILD_THREADS="$BUILD_THREADS" .
-docker container create --name=z3c z3
 mkdir z3
+docker container create --name=z3c z3
 docker cp z3c:/home/test/z3/build/z3 z3/
 docker container rm z3c
 commit_hash=$(git show --no-patch --format=%h)
@@ -22,7 +22,7 @@ else
     git commit -m "release $tagname"
     git tag $tagname
     git push --set-upstream origin $branchname
-    git push $tagname
+    git push origin $tagname
 fi
 platform=$(uname -m)
 tar czf $tagname-$platform.tar.gz z3/*
