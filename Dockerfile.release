@@ -1,0 +1,51 @@
+FROM ubuntu:bionic
+
+# This is for testing purposes
+
+# Install clang 10.0 for Linux (intended not to be in the package)
+# From: https://apt.llvm.org/
+RUN apt-get update
+RUN apt-get --yes install --no-install-recommends wget ca-certificates gnupg
+RUN wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key| apt-key add -
+RUN echo deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main >> /etc/apt/sources.list
+RUN echo deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main >> /etc/apt/sources.list
+RUN apt-get update
+RUN apt-get --yes install --no-install-recommends clang-10 python make
+RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-10 20
+RUN update-alternatives --set clang /usr/bin/clang-10
+RUN update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-10 20
+RUN update-alternatives --set clang++ /usr/bin/clang++-10
+RUN clang --version
+RUN clang++ --version
+RUN apt-get --yes install --no-install-recommends python3-pip python3-setuptools
+
+# Create a new user and give them sudo rights
+RUN useradd -d /home/test test
+RUN echo 'test ALL=NOPASSWD: ALL' >> /etc/sudoers
+RUN mkdir /home/test
+RUN chown test:test /home/test
+USER test
+ENV HOME /home/test
+WORKDIR $HOME
+SHELL ["/bin/bash", "--login", "-c"]
+ENV PATH $HOME/.local/bin:$PATH
+
+# Install satsuki
+RUN pip3 install --upgrade pip==20.1.1
+RUN pip3 install wheel
+RUN pip3 install pygithub==1.47
+RUN pip3 install satsuki==0.1.23
+
+# CI: Do not use cache from this point on
+ARG BUILD_ID=0
+RUN echo $BUILD_ID
+
+# Add files
+ADD --chown=test . z3
+WORKDIR z3
+
+# Run the script
+ARG Z3_THREADS=1
+ARG SATS_TOKEN
+ARG Z3_BRANCHNAME
+RUN ./complete_release.sh
